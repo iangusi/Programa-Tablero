@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programa Tablero</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Programa Tablero</h1>
+
+  <div class="container">
+    <!-- LADO IZQUIERDO: CONTROLES + LOG -->
+    <div class="card">
+      <h3>Controles</h3>
+      <div class="controls">
+        <label>Modo</label>
+        <div class="row">
+          <select id="modeSelect">
+            <option value="manual">Manual</option>
+            <option value="auto">Automático (todo)</option>
+          </select>
+          <button id="runAutoBtn" class="secondary" title="Ejecuta todo en modo automático">Ejecutar automático</button>
+        </div>
+
+        <!-- 🔹 NUEVO: Patrones por autómata -->
+        <label>Patrones por autómata (usar "b" para blanco y "n" para negro). <br>
+          <span class="small">Los tres patrones deben tener la misma longitud.</span>
+        </label>
+        <div class="row">
+          <input id="patternA" type="text" placeholder="Patrón autómata A (ej. bnb)" />
+        </div>
+        <div class="row">
+          <input id="patternB" type="text" placeholder="Patrón autómata B (ej. nbb)" />
+        </div>
+        <div class="row">
+          <input id="patternC" type="text" placeholder="Patrón autómata C (ej. bnn)" />
+        </div>
+
+        <!-- (Opcional) Si los dejas vacíos, el programa puede generarlos aleatoriamente.
+             Todos deben terminar con la misma longitud n. -->
+
+        <label>Número de movimientos (n). Si ingresas patrones, n se tomará del largo de esos patrones (máx 100)</label>
+        <input id="nInput" type="number" min="1" max="100" value="5" />
+
+        <div class="row">
+          <button id="generateBtn">Generar rutas</button>
+          <button id="downloadAllBtn" class="secondary" disabled>Descargar rutas (.txt)</button>
+        </div>
+        <div class="row">
+          <button id="startSimBtn" disabled>Iniciar simulación</button>
+          <button id="pauseSimBtn" disabled class="secondary">Pausar</button>
+          <button id="resetBtn" class="secondary">Reiniciar</button>
+        </div>
+
+        <hr/>
+        <h4>Descargas por autómata</h4>
+        <div class="row">
+          <button id="downloadAllA" class="secondary" disabled>Autómata A: descargar rutas</button>
+          <button id="downloadWinA" disabled>Autómata A: rutas ganadoras</button>
+        </div>
+        <div class="row">
+          <button id="downloadAllB" class="secondary" disabled>Autómata B: descargar rutas</button>
+          <button id="downloadWinB" disabled>Autómata B: rutas ganadoras</button>
+        </div>
+        <div class="row">
+          <button id="downloadAllC" class="secondary" disabled>Autómata C: descargar rutas</button>
+          <button id="downloadWinC" disabled>Autómata C: rutas ganadoras</button>
+        </div>
+      </div>
+
+      <hr/>
+      <h4>Registro</h4>
+      <div id="log" class="logs"></div>
+      <footer>Numeración fila-major 1..16 (arriba-izquierda = 1).</footer>
+    </div>
+
+    <!-- LADO DERECHO: TABLERO + TIMELINES + NFA -->
+    <div>
+      <div class="card" style="position:relative;overflow:visible;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <div style="font-weight:700">Tablero </div>
+          <div class="legend">
+            <div class="chip" style="background:#2b8cff"></div> A
+            <div class="chip" style="background:#ff7b4a;margin-left:8px"></div> B
+            <div class="chip" style="background:#6fd36f;margin-left:8px"></div> C
+          </div>
+        </div>
+        <div id="boardWrap" style="position:relative;display:inline-block">
+          <div id="board" class="board"></div>
+          <svg id="svg" class="svglayer" width="100%" height="100%" viewBox="0 0 300 300" preserveAspectRatio="none"
+               style="position:absolute;left:8px;top:8px;width:calc(var(--cell-size)*4 + 9px);height:calc(var(--cell-size)*4 + 9px)"></svg>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h4>Rutas (líneas del tiempo)</h4>
+        <div style="display:flex;gap:12px;flex-direction:column">
+          <div>
+            <div style="font-weight:700">Autómata A (inicio 1 → meta 16)</div>
+            <div id="timelineA" class="timeline"></div>
+          </div>
+          <div>
+            <div style="font-weight:700">Autómata B (inicio 4 → meta 13)</div>
+            <div id="timelineB" class="timeline"></div>
+          </div>
+          <div>
+            <div style="font-weight:700">Autómata C (inicio 3 → meta 14)</div>
+            <div id="timelineC" class="timeline"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h4>NFA por autómata (árbol por capas)</h4>
+        <div class="small">Cada grafo muestra <b>solo</b> las rutas ganadoras por autómata, desde paso 0 hasta paso n. Se resalta la arista usada en ejecución.</div>
+
+        <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px">
+          <div>
+            <div style="font-weight:700;margin-bottom:4px">Autómata A</div>
+            <svg id="nfaSvgA" class="svglayer" width="100%" height="100%" viewBox="0 0 900 280"
+                 style="position:relative;width:100%;height:280px;background:#f8fafc;border-radius:8px"></svg>
+          </div>
+          <div>
+            <div style="font-weight:700;margin-bottom:4px">Autómata B</div>
+            <svg id="nfaSvgB" class="svglayer" width="100%" height="100%" viewBox="0 0 900 280"
+                 style="position:relative;width:100%;height:280px;background:#f8fafc;border-radius:8px"></svg>
+          </div>
+          <div>
+            <div style="font-weight:700;margin-bottom:4px">Autómata C</div>
+            <svg id="nfaSvgC" class="svglayer" width="100%" height="100%" viewBox="0 0 900 280"
+                 style="position:relative;width:100%;height:280px;background:#f8fafc;border-radius:8px"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
